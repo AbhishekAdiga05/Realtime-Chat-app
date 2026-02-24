@@ -4,11 +4,12 @@ A modern fullstack chat application with real-time messaging, authentication, an
 
 ## Features
 
-- User authentication (signup, login, logout)
-- Real-time chat with Socket.io
-- Profile picture upload (Cloudinary)
-- Responsive React frontend (Vite)
-- MongoDB database (Mongoose ODM)
+🌟 Tech stack: MERN + Socket.io + TailwindCSS + Daisy UI
+🎃 Authentication && Authorization with JWT
+👾 Real-time messaging with Socket.io
+🚀 Online user status
+👌 Global state management with Zustand
+🐞 Error handling both on the server and on the client
 
 ## Project Structure
 
@@ -45,9 +46,15 @@ npm run dev
 ## Environment Variables (Backend)
 
 ```
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/chat-app
-JWT_SECRET=your_jwt_secret_here
+MONGODB_URI=...
+PORT=5001
+JWT_SECRET=...
+
+CLOUDINARY_CLOUD_NAME=...
+CLOUDINARY_API_KEY=...
+CLOUDINARY_API_SECRET=...
+
+NODE_ENV=development
 ```
 
 ## Scripts
