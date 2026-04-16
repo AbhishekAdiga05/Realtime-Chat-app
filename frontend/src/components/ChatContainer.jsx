@@ -1,16 +1,22 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
-import { Check, CheckCheck } from "lucide-react";
+import { axiosInstance } from "../lib/axios";
+import { Check, CheckCheck, Search, X } from "lucide-react";
 
-const ChatContainer = () => {
+const ChatContainer = ({ onSearchClick }) => {
   const { selectedUser, messages, getMessages, isMessagesLoading, markMessagesAsSeen } = useChatStore();
   const { authUser } = useAuthStore();
   const messagesEndRef = useRef(null);
   const containerRef = useRef(null);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchInputRef = useRef(null);
 
   useEffect(() => {
     if (selectedUser) {
@@ -46,6 +52,60 @@ const ChatContainer = () => {
     return () => observer.disconnect();
   }, [messages, selectedUser]);
 
+  useEffect(() => {
+    if (showSearch && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [showSearch]);
+
+  const handleSearchToggle = useCallback(() => {
+    setShowSearch((prev) => !prev);
+    if (!showSearch) {
+      setSearchQuery("");
+      setSearchResults([]);
+    }
+  }, [showSearch]);
+
+  const handleSearch = useCallback(async () => {
+    if (!searchQuery.trim() || !selectedUser) return;
+
+    setIsSearching(true);
+    try {
+      const res = await axiosInstance.get(`/messages/search/${selectedUser._id}?q=${encodeURIComponent(searchQuery)}`);
+      setSearchResults(res.data);
+    } catch (error) {
+      console.error("Search error:", error);
+    } finally {
+      setIsSearching(false);
+    }
+  }, [searchQuery, selectedUser]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.trim()) {
+        handleSearch();
+      } else {
+        setSearchResults([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, handleSearch]);
+
+  const handleSearchResultClick = (message) => {
+    const element = document.getElementById(`message-${message._id}`);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      element.classList.add("bg-primary/20");
+      setTimeout(() => {
+        element.classList.remove("bg-primary/20");
+      }, 1500);
+    }
+    setShowSearch(false);
+    setSearchQuery("");
+    setSearchResults([]);
+  };
+
   if (!selectedUser) return null;
 
   return (
@@ -54,7 +114,91 @@ const ChatContainer = () => {
       animate={{ opacity: 1 }}
       className="flex-1 flex flex-col h-full bg-gradient-to-b from-base-100 to-base-200/30"
     >
-      <ChatHeader />
+      <ChatHeader onSearchClick={handleSearchToggle} />
+
+      <AnimatePresence>
+        {showSearch && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="bg-base-200/80 border-b border-base-300 overflow-hidden"
+          >
+            <div className="p-3">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/50" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search messages..."
+                    className="input input-sm input-bordered w-full pl-9 pr-4"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                    >
+                      <X className="w-4 h-4 text-base-content/50" />
+                    </button>
+                  )}
+                </div>
+                <button onClick={handleSearchToggle} className="btn btn-ghost btn-sm">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {isSearching && (
+                <div className="mt-2 text-center">
+                  <span className="loading loading-spinner loading-sm text-primary"></span>
+                </div>
+              )}
+
+              {searchResults.length > 0 && (
+                <div className="mt-2 max-h-48 overflow-y-auto space-y-1">
+                  <p className="text-xs text-base-content/50 px-1 mb-1">
+                    {searchResults.length} result{searchResults.length > 1 ? "s" : ""} found
+                  </p>
+                  {searchResults.slice(0, 10).map((msg) => (
+                    <button
+                      key={msg._id}
+                      onClick={() => handleSearchResultClick(msg)}
+                      className="w-full text-left p-2 rounded-lg hover:bg-base-300 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <img
+                          src={msg.senderId?.profilePic || "/avatar.png"}
+                          alt=""
+                          className="w-6 h-6 rounded-full"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {msg.senderId?.fullName}
+                          </p>
+                          <p className="text-xs text-base-content/60 truncate">
+                            {msg.text}
+                          </p>
+                        </div>
+                        <span className="text-[10px] text-base-content/50">
+                          {formatTime(msg.createdAt)}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {searchQuery && !isSearching && searchResults.length === 0 && (
+                <p className="mt-2 text-center text-sm text-base-content/50 py-2">
+                  No messages found
+                </p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         {isMessagesLoading ? (
@@ -91,8 +235,11 @@ const ChatContainer = () => {
 };
 
 const MessageBubble = ({ message, isOwnMessage, showAvatar, sender }) => {
+  const isHighlighted = message._id;
+
   return (
     <motion.div
+      id={`message-${message._id}`}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className={`flex gap-1.5 sm:gap-2 mb-1 ${isOwnMessage ? "justify-end" : "justify-start"}`}
@@ -141,7 +288,6 @@ const MessageBubble = ({ message, isOwnMessage, showAvatar, sender }) => {
               <span className="whitespace-pre-wrap break-words">{message.text}</span>
             )}
             
-            {/* Inline Timestamp and Read Receipts */}
             <div
               className={`flex items-center gap-1 text-[10px] sm:text-[11px] font-medium opacity-70 ml-auto whitespace-nowrap translate-y-[2px] ${
                 isOwnMessage ? "text-primary-content" : "text-base-content"

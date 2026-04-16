@@ -5,10 +5,46 @@ import { Group } from "../models/group.model.js";
 import cloudinary from "../lib/cloudinary.js";
 import { getReceiverSocketId, getIO } from "../lib/socket.js";
 
+export const searchMessages = async (req, res) => {
+  try {
+    const { id: userToChatId } = req.params;
+    const { q } = req.query;
+    const myId = req.user._id;
+
+    if (!q || q.trim().length === 0) {
+      return res.status(400).json({ error: "Search query is required" });
+    }
+
+    const messages = await Message.find({
+      $or: [
+        { senderId: myId, receiverId: userToChatId, messageType: "direct", text: { $regex: q, $options: "i" } },
+        { senderId: userToChatId, receiverId: myId, messageType: "direct", text: { $regex: q, $options: "i" } },
+      ],
+    })
+      .populate("senderId", "fullName profilePic")
+      .populate("receiverId", "fullName profilePic")
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    res.status(200).json(messages);
+  } catch (error) {
+    console.log("Error in searchMessages controller: ", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 export const getUsersForSidebar = async (req, res) => {
   try {
     const loggedInUserId = req.user._id;
-    const filteredUsers = await User.find({ _id: { $ne: loggedInUserId } }).select("-password");
+    const currentUser = await User.findById(loggedInUserId);
+    const blockedUsers = currentUser.blockedUsers || [];
+    
+    const filteredUsers = await User.find({ 
+      _id: { 
+        $ne: loggedInUserId,
+        $nin: blockedUsers
+      }
+    }).select("-password");
 
     res.status(200).json(filteredUsers);
   } catch (error) {
