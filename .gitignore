@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 .env
+
+.1.pdf
+.DETAILED_README.md
