@@ -1,61 +1,57 @@
-import { useRef, useState } from "react";
-import { useChatStore } from "../store/useChatStore";
-import { Image, Send, X, Smile, Loader2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { Send, Image, Smile, X, Loader2 } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
 import { motion, AnimatePresence } from "framer-motion";
-import toast from "react-hot-toast";
+import { useGroupStore } from "../../store/useGroupStore";
 
-const MessageInput = () => {
+export const GroupMessageInput = () => {
   const [text, setText] = useState("");
+  const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [isSending, setIsSending] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
   const fileInputRef = useRef(null);
-  const { sendMessage, selectedUser } = useChatStore();
 
-  const handleImageChange = (e) => {
+  const { selectedGroup, sendGroupMessage } = useGroupStore();
+
+  const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image size must be less than 5MB");
+      alert("Please select an image file");
       return;
     }
 
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result);
+    reader.onload = (e) => {
+      setImagePreview(e.target.result);
+      setImage(e.target.result);
     };
     reader.readAsDataURL(file);
   };
 
   const removeImage = () => {
+    setImage(null);
     setImagePreview(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!text.trim() && !imagePreview) return;
+  const handleSend = async () => {
+    if ((!text.trim() && !image) || !selectedGroup) return;
 
     setIsSending(true);
-    try {
-      await sendMessage({
-        receiverId: selectedUser._id,
-        text: text.trim(),
-        image: imagePreview || "",
-      });
+    const messageData = {
+      text: text.trim(),
+      image: image || "",
+    };
 
+    try {
       setText("");
-      setImagePreview(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      removeImage();
+      await sendGroupMessage(selectedGroup._id, messageData);
     } catch (error) {
-      console.error("Failed to send message:", error);
+      console.error("Send error:", error);
     } finally {
       setIsSending(false);
     }
@@ -64,7 +60,7 @@ const MessageInput = () => {
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage(e);
+      handleSend();
     }
   };
 
@@ -146,9 +142,9 @@ const MessageInput = () => {
         <input
           type="file"
           accept="image/*"
-          className="hidden"
           ref={fileInputRef}
-          onChange={handleImageChange}
+          onChange={handleImageSelect}
+          className="hidden"
         />
 
         <button
@@ -160,8 +156,8 @@ const MessageInput = () => {
 
         <motion.button
           whileTap={{ scale: 0.95 }}
-          onClick={handleSendMessage}
-          disabled={(!text.trim() && !imagePreview) || isSending}
+          onClick={handleSend}
+          disabled={(!text.trim() && !image) || isSending}
           className="btn btn-primary btn-circle"
         >
           {isSending ? (
@@ -174,5 +170,3 @@ const MessageInput = () => {
     </div>
   );
 };
-
-export default MessageInput;

@@ -4,13 +4,17 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import path from "path";
 
-import { app, server } from "./lib/socket.js";
+import { app, server, initSocket } from "./lib/socket.js";
 
 dotenv.config();
 
 import authRoutes from "./routes/auth.route.js";
 import messageRoutes from "./routes/message.route.js";
+import groupRoutes from "./routes/group.route.js";
+import messageStatusRoutes from "./routes/messageStatus.route.js";
 import { connectDB } from "./lib/db.js";
+
+initSocket();
 
 const PORT = process.env.PORT;
 const __dirname = path.resolve();
@@ -28,14 +32,14 @@ app.use(
 
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/messages", messageStatusRoutes);
+app.use("/api/groups", groupRoutes);
 
-// ✅ Production setup
 if (process.env.NODE_ENV === "production") {
   const frontendPath = path.join(__dirname, "../frontend/dist");
 
   app.use(express.static(frontendPath));
 
-  // ✅ FINAL WORKING SOLUTION (Express v5)
   app.use((req, res) => {
     res.sendFile(path.join(frontendPath, "index.html"));
   });

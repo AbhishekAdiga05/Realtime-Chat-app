@@ -16,53 +16,70 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get("/messages/users");
       set({ users: res.data });
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Failed to fetch users");
     } finally {
       set({ isUsersLoading: false });
     }
   },
 
   getMessages: async (userId) => {
-    set({ isMessagesLoading: true });
+    set({ isMessagesLoading: true, messages: [] });
     try {
       const res = await axiosInstance.get(`/messages/${userId}`);
       set({ messages: res.data });
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Failed to fetch messages");
     } finally {
       set({ isMessagesLoading: false });
     }
   },
+
   sendMessage: async (messageData) => {
-    const { selectedUser, messages } = get();
     try {
-      const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
-      set({ messages: [...messages, res.data] });
+      const res = await axiosInstance.post(`/messages/send/${messageData.receiverId}`, {
+        text: messageData.text,
+        image: messageData.image,
+      });
+      set((state) => ({
+        messages: [...state.messages, res.data],
+      }));
+      return res.data;
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Failed to send message");
+      throw error;
     }
   },
 
-  subscribeToMessages: () => {
-    const { selectedUser } = get();
-    if (!selectedUser) return;
-
-    const socket = useAuthStore.getState().socket;
-
-    socket.on("newMessage", (newMessage) => {
-      const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser._id;
-      if (!isMessageSentFromSelectedUser) return;
-
-      set({
-        messages: [...get().messages, newMessage],
-      });
+  addMessage: (message) => {
+    set((state) => {
+      const exists = state.messages.find((m) => m._id === message._id);
+      if (exists) return state;
+      return { messages: [...state.messages, message] };
     });
   },
 
-  unsubscribeFromMessages: () => {
-    const socket = useAuthStore.getState().socket;
-    socket.off("newMessage");
+  updateMessageStatus: (messageId, status) => {
+    set((state) => ({
+      messages: state.messages.map((m) =>
+        m._id === messageId ? { ...m, status } : m
+      ),
+    }));
   },
 
-  setSelectedUser: (selectedUser) => set({ selectedUser }),
+  markMessagesAsSeen: async (messageIds) => {
+    try {
+      await axiosInstance.post("/messages/seen", { messageIds });
+      set((state) => ({
+        messages: state.messages.map((m) =>
+          messageIds.includes(m._id)
+            ? { ...m, status: "seen", seenAt: new Date() }
+            : m
+        ),
+      }));
+    } catch (error) {
+      console.error("Failed to mark as seen:", error);
+    }
+  },
+
+  setSelectedUser: (user) => set({ selectedUser: user, messages: [] }),
 }));

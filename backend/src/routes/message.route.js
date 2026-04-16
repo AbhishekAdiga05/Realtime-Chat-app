@@ -4,11 +4,13 @@ import {
   getMessages,
   getUsersForSidebar,
   sendMessage,
+  sendGroupMessage,
 } from "../controllers/message.controller.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
 
 router.get("/users", protectRoute, getUsersForSidebar);
 router.get("/:id", protectRoute, getMessages);
 router.post("/send/:id", protectRoute, sendMessage);
+router.post("/group/:id", protectRoute, sendGroupMessage);
 
 export default router;
