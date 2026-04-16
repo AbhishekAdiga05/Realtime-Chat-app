@@ -89,25 +89,44 @@ export const logout = (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { profilePic } = req.body;
+    const { fullName, email, profilePic } = req.body;
     const userId = req.user._id;
 
-    if (!profilePic) {
-      return res.status(400).json({ message: "Profile pic is required" });
+    const updateData = {};
+
+    if (profilePic) {
+      const uploadResponse = await cloudinary.uploader.upload(profilePic);
+      updateData.profilePic = uploadResponse.secure_url;
     }
 
-    console.log("Profile pic:", profilePic);
+    if (fullName) {
+      if (fullName.trim().length < 2) {
+        return res.status(400).json({ message: "Name must be at least 2 characters" });
+      }
+      updateData.fullName = fullName.trim();
+    }
 
-    const uploadResponse = await cloudinary.uploader.upload(profilePic);
-    console.log("Upload response:", uploadResponse);
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+      const existingUser = await User.findOne({ email, _id: { $ne: userId } });
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already in use" });
+      }
+      updateData.email = email.toLowerCase().trim();
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ message: "No fields to update" });
+    }
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { profilePic: uploadResponse.secure_url },
-      { new: true },
-    );
-
-    console.log("Updated user:", updatedUser);
+      updateData,
+      { new: true }
+    ).select("-password");
 
     res.status(200).json(updatedUser);
   } catch (error) {
@@ -176,53 +195,5 @@ export const unblockUser = async (req, res) => {
   } catch (error) {
     console.log("Error in unblockUser controller", error.message);
     res.status(500).json({ message: "Internal Server Error" });
-  }
-};
-
-export const updateProfile = async (req, res) => {
-  try {
-    const { fullName, email, profilePic } = req.body;
-    const userId = req.user._id;
-
-    const updateData = {};
-
-    if (profilePic) {
-      const uploadResponse = await cloudinary.uploader.upload(profilePic);
-      updateData.profilePic = uploadResponse.secure_url;
-    }
-
-    if (fullName) {
-      if (fullName.trim().length < 2) {
-        return res.status(400).json({ message: "Name must be at least 2 characters" });
-      }
-      updateData.fullName = fullName.trim();
-    }
-
-    if (email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        return res.status(400).json({ message: "Invalid email format" });
-      }
-      const existingUser = await User.findOne({ email, _id: { $ne: userId } });
-      if (existingUser) {
-        return res.status(400).json({ message: "Email already in use" });
-      }
-      updateData.email = email.toLowerCase().trim();
-    }
-
-    if (Object.keys(updateData).length === 0) {
-      return res.status(400).json({ message: "No fields to update" });
-    }
-
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      updateData,
-      { new: true }
-    ).select("-password");
-
-    res.status(200).json(updatedUser);
-  } catch (error) {
-    console.log("error in update profile:", error);
-    res.status(500).json({ message: "Internal server error" });
   }
 };
