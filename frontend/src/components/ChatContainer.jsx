@@ -93,74 +93,78 @@ const ChatContainer = () => {
 const MessageBubble = ({ message, isOwnMessage, showAvatar, sender }) => {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ type: "spring", stiffness: 300, damping: 25 }}
-      className={`flex gap-2 ${isOwnMessage ? "justify-end" : "justify-start"}`}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`flex gap-1.5 sm:gap-2 mb-1 ${isOwnMessage ? "justify-end" : "justify-start"}`}
     >
       {!isOwnMessage && (
-        <div className="w-8 flex-shrink-0">
+        <div className="w-6 sm:w-8 flex-shrink-0 flex items-end mb-[2px]">
           {showAvatar ? (
-            <img
-              src={sender?.profilePic || "/avatar.png"}
-              alt={sender?.fullName}
-              className="w-8 h-8 rounded-full"
-            />
+            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full overflow-hidden border border-base-300 shadow-sm">
+              <img
+                src={sender?.profilePic || "/avatar.png"}
+                alt={sender?.fullName}
+                className="w-full h-full object-cover"
+              />
+            </div>
           ) : (
-            <div className="w-8" />
+            <div className="w-6 sm:w-8" />
           )}
         </div>
       )}
 
-      <div className={`max-w-[75%] ${isOwnMessage ? "order-1" : ""}`}>
+      <div className={`flex flex-col max-w-[85%] sm:max-w-[75%] ${isOwnMessage ? "items-end" : "items-start"}`}>
         {showAvatar && !isOwnMessage && (
-          <div className="text-xs text-base-content/60 mb-1 ml-1 font-medium">
+          <span className="text-[11px] text-base-content/50 ml-1 mb-1 font-medium tracking-wide">
             {sender?.fullName}
-          </div>
+          </span>
         )}
 
-        <div className={`relative group flex flex-col ${isOwnMessage ? "items-end" : "items-start"}`}>
-          <div
-            className={`chat-bubble ${
-              isOwnMessage
-                ? "bg-gradient-to-br from-primary to-primary/80 text-primary-content rounded-2xl rounded-br-md"
-                : "bg-base-200 rounded-2xl rounded-bl-md"
-            } px-4 py-2.5`}
-          >
-            {message.image && (
-              <img
-                src={message.image}
-                alt="Attachment"
-                className="rounded-lg mb-2 max-w-[200px] cursor-pointer hover:opacity-90 transition-opacity"
-                onClick={() => window.open(message.image, "_blank")}
-              />
-            )}
-            {message.text && (
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                {message.text}
-              </p>
-            )}
-          </div>
+        <div
+          className={`relative group flex flex-col px-3 py-2 sm:px-4 sm:py-2.5 shadow-sm text-[15px] sm:text-base leading-snug ${
+            isOwnMessage
+              ? "bg-primary text-primary-content rounded-[20px] rounded-br-[4px]"
+              : "bg-base-200 text-base-content rounded-[20px] rounded-bl-[4px]"
+          }`}
+        >
+          {message.image && (
+            <img
+              src={message.image}
+              alt="Attachment"
+              className="rounded-xl mb-1.5 max-w-[200px] sm:max-w-[260px] object-cover cursor-pointer hover:opacity-[0.85] transition-opacity border border-black/10 shadow-sm"
+              onClick={() => window.open(message.image, "_blank")}
+            />
+          )}
 
-          <div className={`flex items-center gap-1 mt-1 text-[10px] text-base-content/50 ${isOwnMessage ? "justify-end" : "justify-start"}`}>
-            <span>{formatTime(message.createdAt)}</span>
-            {isOwnMessage && (
-              <span className="ml-1">
-                {message.status === "sent" && <Check size={12} />}
-                {message.status === "delivered" && (
-                  <span className="flex -space-x-1">
-                    <Check size={12} />
-                    <Check size={12} />
-                  </span>
-                )}
-                {message.status === "seen" && (
-                  <span className="flex -space-x-1 text-success">
-                    <CheckCheck size={12} />
-                    <CheckCheck size={12} />
-                  </span>
-                )}
-              </span>
+          <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
+            {message.text && (
+              <span className="whitespace-pre-wrap break-words">{message.text}</span>
             )}
+            
+            {/* Inline Timestamp and Read Receipts */}
+            <div
+              className={`flex items-center gap-1 text-[10px] sm:text-[11px] font-medium opacity-70 ml-auto whitespace-nowrap translate-y-[2px] ${
+                isOwnMessage ? "text-primary-content" : "text-base-content"
+              }`}
+            >
+              <span>{formatTime(message.createdAt)}</span>
+              {isOwnMessage && (
+                <span className="flex items-center">
+                  {message.status === "sent" && <Check size={12} strokeWidth={3} />}
+                  {message.status === "delivered" && (
+                    <span className="flex -space-x-[6px]">
+                      <Check size={12} strokeWidth={3} />
+                      <Check size={12} strokeWidth={3} />
+                    </span>
+                  )}
+                  {message.status === "seen" && (
+                    <span className="flex -space-x-[6px]">
+                      <CheckCheck size={14} className="text-white drop-shadow-sm" />
+                    </span>
+                  )}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -170,28 +174,25 @@ const MessageBubble = ({ message, isOwnMessage, showAvatar, sender }) => {
 
 const EmptyChat = ({ selectedUser }) => (
   <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="flex flex-col items-center justify-center h-full text-center p-8"
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    className="flex flex-col items-center justify-center h-full text-center p-4 sm:p-8 space-y-4"
   >
-    <motion.div
-      initial={{ scale: 0.8 }}
-      animate={{ scale: 1 }}
-      className="w-24 h-24 mx-auto mb-8 relative"
-    >
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-secondary/30 rounded-full blur-2xl" />
+    <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto relative rounded-full overflow-hidden border-4 border-base-200 shadow-xl">
       <img
         src={selectedUser?.profilePic || "/avatar.png"}
         alt={selectedUser?.fullName}
-        className="w-full h-full rounded-full object-cover relative"
+        className="w-full h-full object-cover"
       />
-    </motion.div>
-    <h3 className="text-xl font-bold mb-2">Start a conversation</h3>
-    <p className="text-base-content/60 max-w-xs">
-      Send a message to{" "}
-      <span className="font-semibold text-base-content">{selectedUser?.fullName}</span>{" "}
-      and start chatting!
-    </p>
+    </div>
+    <div className="bg-base-200/50 backdrop-blur border border-base-300 px-6 py-5 rounded-2xl max-w-sm shadow-sm">
+      <h3 className="text-lg font-semibold text-base-content mb-2 tracking-tight">
+        Say hi to {selectedUser?.fullName.split(" ")[0]}! 👋
+      </h3>
+      <p className="text-sm text-base-content/60 leading-relaxed">
+        This is the beginning of your direct message history. Send a secure message below to start the conversation!
+      </p>
+    </div>
   </motion.div>
 );
 

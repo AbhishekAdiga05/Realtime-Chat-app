@@ -14,7 +14,7 @@ export const GroupSidebar = () => {
 
   const { users, selectedUser, setSelectedUser, isUsersLoading } = useChatStore();
   const { groups, selectedGroup, selectGroup, isGroupsLoading, clearSelectedGroup } = useGroupStore();
-  const { authUser, onlineUsers } = useAuthStore();
+  const { onlineUsers } = useAuthStore();
 
   const filteredUsers = users.filter((u) =>
     u.fullName.toLowerCase().includes(searchQuery.toLowerCase())
@@ -34,85 +34,85 @@ export const GroupSidebar = () => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-b from-base-200 to-base-300/50">
-      <div className="p-4 space-y-3">
+    <div className="h-full flex flex-col bg-base-100">
+      {/* Header Section */}
+      <div className="p-4 pb-3 border-b border-base-300 flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Messages
-          </h2>
+          <h2 className="text-xl font-bold tracking-tight">Messages</h2>
           <button
             onClick={() => setShowCreateGroup(true)}
-            className="btn btn-primary btn-sm btn-circle"
+            className="btn btn-ghost btn-sm btn-circle bg-base-200 hover:bg-base-300"
+            title="Create Group"
           >
             <Plus size={18} />
           </button>
         </div>
 
+        {/* Search Bar */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" size={18} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50" size={18} />
           <input
             type="text"
-            className="input input-bordered w-full pl-10 bg-base-100/80 focus:bg-base-100 transition-colors"
-            placeholder={`Search ${activeTab}...`}
+            className="input input-sm h-10 input-bordered w-full pl-10 bg-base-200/50 focus:bg-base-200 border-none rounded-xl"
+            placeholder={activeTab === "chats" ? "Search chats..." : "Search groups..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/40 hover:text-base-content"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/50 hover:text-base-content"
             >
               <X size={16} />
             </button>
           )}
         </div>
-      </div>
 
-      <div className="flex px-2">
-        <button
-          onClick={() => setActiveTab("chats")}
-          className={`flex-1 py-2 text-sm font-medium rounded-t-lg transition-all ${
-            activeTab === "chats"
-              ? "bg-base-100 text-primary"
-              : "text-base-content/60 hover:text-base-content"
-          }`}
-        >
-          <div className="flex items-center justify-center gap-2">
+        {/* Segmented Control Tabs */}
+        <div className="bg-base-200 p-1 rounded-lg flex items-center gap-1">
+          <button
+            onClick={() => setActiveTab("chats")}
+            className={`flex-1 py-1.5 text-sm font-semibold rounded-md transition-all flex items-center justify-center gap-2 ${
+              activeTab === "chats"
+                ? "bg-base-100 text-primary shadow-sm"
+                : "text-base-content/60 hover:text-base-content hover:bg-base-200/50"
+            }`}
+          >
             <MessageSquare size={16} />
             Chats
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab("groups")}
-          className={`flex-1 py-2 text-sm font-medium rounded-t-lg transition-all ${
-            activeTab === "groups"
-              ? "bg-base-100 text-primary"
-              : "text-base-content/60 hover:text-base-content"
-          }`}
-        >
-          <div className="flex items-center justify-center gap-2">
+          </button>
+          <button
+            onClick={() => setActiveTab("groups")}
+            className={`flex-1 py-1.5 text-sm font-semibold rounded-md transition-all flex items-center justify-center gap-2 ${
+              activeTab === "groups"
+                ? "bg-base-100 text-primary shadow-sm"
+                : "text-base-content/60 hover:text-base-content hover:bg-base-200/50"
+            }`}
+          >
             <Users size={16} />
             Groups
-          </div>
-        </button>
+          </button>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-hidden">
+      {/* List Section */}
+      <div className="flex-1 overflow-hidden bg-base-100/50">
         <AnimatePresence mode="wait">
           {activeTab === "chats" ? (
             <motion.div
               key="chats"
-              initial={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="h-full overflow-y-auto px-2 pb-2"
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.2 }}
+              className="h-full overflow-y-auto p-2"
             >
               {isUsersLoading ? (
                 <SidebarSkeleton />
               ) : filteredUsers.length === 0 ? (
                 <EmptyState type="users" />
               ) : (
-                <div className="space-y-1">
+                <div className="space-y-[2px]">
                   {filteredUsers.map((user, index) => (
                     <ChatItem
                       key={user._id}
@@ -129,17 +129,18 @@ export const GroupSidebar = () => {
           ) : (
             <motion.div
               key="groups"
-              initial={{ opacity: 0, x: 20 }}
+              initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="h-full overflow-y-auto px-2 pb-2"
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.2 }}
+              className="h-full overflow-y-auto p-2"
             >
               {isGroupsLoading ? (
                 <SidebarSkeleton />
               ) : filteredGroups.length === 0 ? (
                 <EmptyState type="groups" onCreate={() => setShowCreateGroup(true)} />
               ) : (
-                <div className="space-y-1">
+                <div className="space-y-[2px]">
                   {filteredGroups.map((group, index) => (
                     <GroupItem
                       key={group._id}
@@ -157,7 +158,7 @@ export const GroupSidebar = () => {
       </div>
 
       {showCreateGroup && (
-        <CreateGroupModal onClose={() => setShowCreateGroup(false)} />
+        <CreateGroupModal isOpen={true} onClose={() => setShowCreateGroup(false)} />
       )}
     </div>
   );
